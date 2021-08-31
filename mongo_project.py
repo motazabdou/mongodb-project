@@ -25,6 +25,8 @@ def mongo_connect(url):
     except pymongo.errors.ConnectionFailure as e:
         print("Could not connect to MongoDB: %s") % e
 
+
+# initial function that allows user to choose a task to be perfomer
 def show_menu():
     print("")
     print("1. Add a record")
@@ -37,6 +39,25 @@ def show_menu():
     return option 
 
 
+# helper function that will enable obtaining record, then inserting it into relevant function
+def get_record():
+    print("")
+    first = input("Enter first name: ")
+    last = input("Enter last name: ")
+
+    try:
+        doc = coll.find_one({"first": first.lower(), "last": last.lower()})
+    except:
+        print("Error accessing the database")
+
+    if not doc:
+        print("")
+        print("Error! No results found.")
+
+    return doc
+
+
+# function that adds new entry, will be called when user selects option 1
 def add_record():
     print("")
     first = input("Enter first name: ")
@@ -51,18 +72,76 @@ def add_record():
         "first": first.lower(),
         "last": last.lower(),
         "dob": dob,
-        "gender": gender.lower(),
-        "hair_color": hair_color.lower(),
-        "occupation": occupation.lower(),
-        "nationality": nationality.lower
+        "gender": gender,
+        "hair_color": hair_color,
+        "occupation": occupation,
+        "nationality": nationality
     }
 
     try:
-        coll.insert(new_doc)
+        coll.insert_one(new_doc)
         print("")
         print("Document inserted")
     except:
         print("Error accessing the database")
+
+
+#function that finds records, it calls the get_record function, finds record, and loops through document to print key: value
+def find_record():
+    doc = get_record()
+    if doc:
+        print("")
+        for k, v in doc.items():
+            if k != "_id":
+                print(k.capitalize() + ":" + v.capitalize())
+
+
+def edit_record():
+    doc = get_record()
+    if doc:
+        update_doc = {}
+        print("")
+        for k, v in doc.items():
+            if k != "_id":
+                update_doc[k] = input(k.capitalize() + " [" + v + "]")
+
+                if update_doc[k] == "":
+                    update_doc[k] = v
+
+        try:
+            coll.update_one(doc, {"$set": update_doc})
+            print("")
+            print("Document updated")
+
+        except:
+            print("Error accessing database")
+
+
+#function to delete a document
+def delete_record():
+    doc = get_record()
+    if doc:
+        print("")
+        for k, v in doc.items():
+            if k != "_id":
+                print(k.capitalize() + ": " + v.capitalize())
+
+        print("")
+        confirmation = input("Is this the document that you would like to delete?\nY/N")
+        print("")
+
+        if confirmation.lower() == "y":
+            try:
+                coll.remove(doc)
+                print("Document deleted")
+            except:
+                print("Error accessing database")
+
+        else:
+            print("Document not deleted")
+
+
+            
 
 
 def main_loop():
@@ -71,11 +150,11 @@ def main_loop():
         if option == "1":
             add_record()
         elif option == "2":
-            print("You have selected option 2")
+            find_record()
         elif option == "3":
-            print("You have selected option 3")
+            edit_record()
         elif option == "4":
-            print("You have selected option 4")
+            delete_record()
         elif option == "5":
             conn.close()
             break
